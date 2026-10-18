@@ -13,7 +13,7 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout Code
+      - name: Checkout Repository
         uses: actions/checkout@v4
 
       - name: Set up JDK 17
@@ -22,20 +22,12 @@ jobs:
           distribution: 'temurin'
           java-version: '17'
 
-      # Explicitly pin Gradle 8.9 which supports AGP 8.7 & Compose
       - name: Setup Gradle 8.9
         uses: gradle/actions/setup-gradle@v4
         with:
           gradle-version: '8.9'
 
-      # Install Android SDK Platform 34 and 35 + accept licenses
-      - name: Install Android Platforms & Build Tools
-        run: |
-          yes | sdkmanager --licenses || true
-          sdkmanager "platforms;android-34" "platforms;android-35" "build-tools;34.0.0"
-
-      # Build APK
-      - name: Build Debug APK
+      - name: Grant Execute Permission & Build APK
         run: |
           if [ -f "./gradlew" ]; then
             chmod +x ./gradlew
