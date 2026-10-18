@@ -29,18 +29,36 @@ jobs:
           distribution: 'temurin'
           java-version: '17'
 
-      - name: Build Debug APK with Gradle
+      - name: Build Debug APK with Forced Google Repos
         run: |
+          # Force Gradle to look in Google's servers for the Android plugins
+          cat << 'EOF' > init.gradle
+          settingsEvaluated { settings ->
+              settings.pluginManagement {
+                  repositories {
+                      google()
+                      mavenCentral()
+                      gradlePluginPortal()
+                  }
+              }
+              settings.dependencyResolutionManagement {
+                  repositoriesMode.set(RepositoriesMode.PREFER_PROJECT)
+                  repositories {
+                      google()
+                      mavenCentral()
+                  }
+              }
+          }
+          EOF
+          
           if [ ! -f "./gradlew" ]; then
-            echo "Generating Gradle Wrapper..."
             gradle wrapper || true
           fi
           chmod +x ./gradlew || true
-          ./gradlew assembleDebug --no-daemon --stacktrace || gradle assembleDebug
+          ./gradlew assembleDebug --init-script init.gradle --no-daemon --stacktrace || gradle assembleDebug --init-script init.gradle
 
       - name: Upload Sovereign OS APK Artifact
         uses: actions/upload-artifact@v4
         with:
           name: SovereignOS-Debug-APK
           path: "**/outputs/apk/debug/*.apk"
-          retention-days: 14
