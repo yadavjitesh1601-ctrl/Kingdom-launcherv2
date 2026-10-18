@@ -27,7 +27,7 @@ jobs:
         with:
           gradle-version: '8.9'
 
-      # Automatically unpacks the zip if you uploaded the zip directly!
+      # Automatically unpacks zip if uploaded as a zip
       - name: Auto-Unzip Project Files
         run: |
           if ls *.zip 1> /dev/null 2>&1; then
@@ -44,6 +44,10 @@ jobs:
             cd "$PROJECT_DIR"
           fi
 
+          # Enable AndroidX and Jetifier in gradle.properties
+          echo "android.useAndroidX=true" >> gradle.properties
+          echo "android.enableJetifier=true" >> gradle.properties
+
           if [ -f "./gradlew" ]; then
             chmod +x ./gradlew
             ./gradlew assembleDebug --no-daemon --stacktrace
@@ -51,10 +55,7 @@ jobs:
             gradle assembleDebug --no-daemon --stacktrace
           fi
 
-      - name: Locate Generated APKs
-        run: find . -name "*.apk" -ls
-
-      - name: Upload Sovereign OS APK
+      - name: Upload Sovereign OS APK Artifact
         uses: actions/upload-artifact@v4
         with:
           name: SovereignOS-Debug-APK
