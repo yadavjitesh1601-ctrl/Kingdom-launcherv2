@@ -22,14 +22,15 @@ jobs:
           distribution: 'temurin'
           java-version: '17'
 
-      - name: Set up Android SDK
-        uses: android-actions/setup-android@v3
-
-      # Uses official Gradle setup action - handles caching & installs Gradle if wrapper is missing
+      # Official Gradle setup: caches dependencies & automatically installs Gradle if wrapper is missing
       - name: Setup Gradle
         uses: gradle/actions/setup-gradle@v4
 
-      - name: Build Debug APK
+      # Uses the pre-installed Android SDK on GitHub Runner and accepts licenses
+      - name: Accept Android SDK Licenses
+        run: yes | sdkmanager --licenses || true
+
+      - name: Grant Execute Permission & Build APK
         run: |
           if [ -f "./gradlew" ]; then
             chmod +x ./gradlew
@@ -38,7 +39,7 @@ jobs:
             gradle assembleDebug --no-daemon --stacktrace
           fi
 
-      - name: Upload APK
+      - name: Upload Sovereign OS APK
         uses: actions/upload-artifact@v4
         if: always()
         with:
