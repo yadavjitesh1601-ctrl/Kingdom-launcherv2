@@ -1,33 +1,47 @@
-name: Build APK from Zip
-on: [workflow_dispatch, push]
+name: Build Sovereign OS Android APK
+
+on:
+  push:
+    branches: [ "main", "master" ]
+  pull_request:
+    branches: [ "main", "master" ]
+  workflow_dispatch: # Allows manual trigger with 1-click in the GitHub Actions tab
+
 jobs:
   build:
+    name: Build & Assemble APK
     runs-on: ubuntu-latest
+
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout Repository
+        uses: actions/checkout@v4
 
-      - name: Unzip project
-        run: |
-          unzip -o *.zip -d project
-          cp -r project/*/* . || cp -r project/* . || true
-
-      - name: Patch Compose Plugin Error
-        run: |
-          find . -name "build.gradle.kts" -o -name "build.gradle" | while read -r f; do
-            sed -i '/alias(libs\.plugins\.kotlin\.compose)/d' "$f"
-          done
-
-      - uses: actions/setup-java@v4
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
         with:
-          distribution: 'temurin'
+          distribution: 'zulu'
           java-version: '17'
+          cache: 'gradle'
 
-      - name: Build APK
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Grant Execute Permission to Gradlew
         run: |
-          chmod +x ./gradlew || true
-          ./gradlew assembleDebug
+          if [ -f "./gradlew" ]; then
+            chmod +x ./gradlew
+          else
+            echo "Generating Gradle Wrapper..."
+            gradle wrapper
+            chmod +x ./gradlew
+          fi
 
-      - uses: actions/upload-artifact@v4
+      - name: Build Debug APK with Gradle
+        run: ./gradlew assembleDebug --no-daemon --stacktrace
+
+      - name: Upload Sovereign OS APK Artifact
+        uses: actions/upload-artifact@v4
         with:
-          name: kingdom-launcher-apk
-          path: "**/outputs/apk/debug/*.apk"
+          name: SovereignOS-Debug-APK
+          path: app/build/outputs/apk/debug/*.apk
+          retention-days: 14
