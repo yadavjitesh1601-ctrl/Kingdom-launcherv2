@@ -1,0 +1,23 @@
+name: Build APK from Zip
+on: [workflow_dispatch, push]
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Unzip project
+        run: |
+          unzip -o *.zip -d project
+          cp -r project/*/* . || cp -r project/* . || true
+      - uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+      - name: Build APK
+        run: |
+          chmod +x ./gradlew || true
+          ./gradlew assembleDebug || gradle assembleDebug
+      - uses: actions/upload-artifact@v4
+        with:
+          name: kingdom-launcher-apk
+          path: "**/outputs/apk/debug/*.apk"
