@@ -3,25 +3,18 @@ name: Build Sovereign OS Android APK
 on:
   push:
     branches: [ "main", "master" ]
+  pull_request:
+    branches: [ "main", "master" ]
   workflow_dispatch:
 
 jobs:
   build:
-    name: Build & Assemble APK
+    name: Build APK
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout Repository
+      - name: Checkout Code
         uses: actions/checkout@v4
-
-      - name: Unpack Project Zip
-        run: |
-          mkdir -p extracted
-          unzip -o *.zip -d extracted
-          PROJECT_ROOT=$(find extracted -name "build.gradle*" -exec dirname {} \; | head -n 1)
-          if [ -n "$PROJECT_ROOT" ]; then
-            cp -rn "$PROJECT_ROOT"/* . || true
-          fi
 
       - name: Set up JDK 17
         uses: actions/setup-java@v4
@@ -29,36 +22,27 @@ jobs:
           distribution: 'temurin'
           java-version: '17'
 
-      - name: Build Debug APK with Forced Google Repos
-        run: |
-          # Force Gradle to look in Google's servers for the Android plugins
-          cat << 'EOF' > init.gradle
-          settingsEvaluated { settings ->
-              settings.pluginManagement {
-                  repositories {
-                      google()
-                      mavenCentral()
-                      gradlePluginPortal()
-                  }
-              }
-              settings.dependencyResolutionManagement {
-                  repositoriesMode.set(RepositoriesMode.PREFER_PROJECT)
-                  repositories {
-                      google()
-                      mavenCentral()
-                  }
-              }
-          }
-          EOF
-          
-          if [ ! -f "./gradlew" ]; then
-            gradle wrapper || true
-          fi
-          chmod +x ./gradlew || true
-          ./gradlew assembleDebug --init-script init.gradle --no-daemon --stacktrace || gradle assembleDebug --init-script init.gradle
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v3
 
-      - name: Upload Sovereign OS APK Artifact
+      # Uses official Gradle setup action - handles caching & installs Gradle if wrapper is missing
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v4
+
+      - name: Build Debug APK
+        run: |
+          if [ -f "./gradlew" ]; then
+            chmod +x ./gradlew
+            ./gradlew assembleDebug --no-daemon --stacktrace
+          else
+            gradle assembleDebug --no-daemon --stacktrace
+          fi
+
+      - name: Upload APK
         uses: actions/upload-artifact@v4
+        if: always()
         with:
           name: SovereignOS-Debug-APK
-          path: "**/outputs/apk/debug/*.apk"
+          path: app/build/outputs/apk/debug/*.apk
+          if-no-files-found: warn
+          retention-days: 14
