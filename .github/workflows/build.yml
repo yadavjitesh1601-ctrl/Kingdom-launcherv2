@@ -22,15 +22,20 @@ jobs:
           distribution: 'temurin'
           java-version: '17'
 
-      # Official Gradle setup: caches dependencies & automatically installs Gradle if wrapper is missing
-      - name: Setup Gradle
+      # Explicitly pin Gradle 8.9 which supports AGP 8.7 & Compose
+      - name: Setup Gradle 8.9
         uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.9'
 
-      # Uses the pre-installed Android SDK on GitHub Runner and accepts licenses
-      - name: Accept Android SDK Licenses
-        run: yes | sdkmanager --licenses || true
+      # Install Android SDK Platform 34 and 35 + accept licenses
+      - name: Install Android Platforms & Build Tools
+        run: |
+          yes | sdkmanager --licenses || true
+          sdkmanager "platforms;android-34" "platforms;android-35" "build-tools;34.0.0"
 
-      - name: Grant Execute Permission & Build APK
+      # Build APK
+      - name: Build Debug APK
         run: |
           if [ -f "./gradlew" ]; then
             chmod +x ./gradlew
