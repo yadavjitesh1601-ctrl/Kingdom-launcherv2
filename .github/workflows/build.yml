@@ -9,7 +9,7 @@ on:
 
 jobs:
   build:
-    name: Build APK
+    name: Build APK from Zip
     runs-on: ubuntu-latest
 
     steps:
@@ -27,8 +27,23 @@ jobs:
         with:
           gradle-version: '8.9'
 
-      - name: Grant Execute Permission & Build APK
+      # Automatically unpacks the zip if you uploaded the zip directly!
+      - name: Auto-Unzip Project Files
         run: |
+          if ls *.zip 1> /dev/null 2>&1; then
+            echo "Found zip file in repository! Unzipping..."
+            unzip -o *.zip
+          fi
+
+      - name: Build Debug APK
+        run: |
+          # Locate where settings.gradle.kts lives after unzipping
+          PROJECT_DIR=$(find . -name "settings.gradle.kts" -exec dirname {} \; | head -n 1)
+          if [ -n "$PROJECT_DIR" ]; then
+            echo "Entering project directory: $PROJECT_DIR"
+            cd "$PROJECT_DIR"
+          fi
+
           if [ -f "./gradlew" ]; then
             chmod +x ./gradlew
             ./gradlew assembleDebug --no-daemon --stacktrace
@@ -36,11 +51,13 @@ jobs:
             gradle assembleDebug --no-daemon --stacktrace
           fi
 
+      - name: Locate Generated APKs
+        run: find . -name "*.apk" -ls
+
       - name: Upload Sovereign OS APK
         uses: actions/upload-artifact@v4
-        if: always()
         with:
           name: SovereignOS-Debug-APK
-          path: app/build/outputs/apk/debug/*.apk
-          if-no-files-found: warn
+          path: "**/*.apk"
+          if-no-files-found: error
           retention-days: 14
