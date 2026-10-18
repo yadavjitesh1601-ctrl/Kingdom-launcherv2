@@ -9,7 +9,6 @@ on:
 
 jobs:
   build:
-    name: Build APK from Zip
     runs-on: ubuntu-latest
 
     steps:
@@ -37,17 +36,26 @@ jobs:
 
       - name: Build Debug APK
         run: |
-          # Locate where settings.gradle.kts lives after unzipping
+          # 1. Force AndroidX globally so Gradle never complains
+          mkdir -p ~/.gradle
+          echo "android.useAndroidX=true" >> ~/.gradle/gradle.properties
+          echo "android.enableJetifier=true" >> ~/.gradle/gradle.properties
+          echo "org.gradle.jvmargs=-Xmx2048m -Dfile.encoding=UTF-8" >> ~/.gradle/gradle.properties
+
+          # 2. Write to root gradle.properties
+          echo "android.useAndroidX=true" >> gradle.properties
+          echo "android.enableJetifier=true" >> gradle.properties
+
+          # 3. Locate where settings.gradle.kts lives after unzipping
           PROJECT_DIR=$(find . -name "settings.gradle.kts" -exec dirname {} \; | head -n 1)
           if [ -n "$PROJECT_DIR" ]; then
             echo "Entering project directory: $PROJECT_DIR"
             cd "$PROJECT_DIR"
+            echo "android.useAndroidX=true" >> gradle.properties
+            echo "android.enableJetifier=true" >> gradle.properties
           fi
 
-          # Enable AndroidX and Jetifier in gradle.properties
-          echo "android.useAndroidX=true" >> gradle.properties
-          echo "android.enableJetifier=true" >> gradle.properties
-
+          # 4. Build APK
           if [ -f "./gradlew" ]; then
             chmod +x ./gradlew
             ./gradlew assembleDebug --no-daemon --stacktrace
