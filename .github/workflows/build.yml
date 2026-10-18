@@ -13,7 +13,6 @@ jobs:
 
       - name: Patch Compose Plugin Error
         run: |
-          # Remove broken alias reference across all build.gradle.kts and build.gradle files
           find . -name "build.gradle.kts" -o -name "build.gradle" | while read -r f; do
             sed -i '/alias(libs\.plugins\.kotlin\.compose)/d' "$f"
           done
@@ -26,7 +25,7 @@ jobs:
       - name: Build APK
         run: |
           chmod +x ./gradlew || true
-          ./gradlew assembleDebug --stacktrace
+          ./gradlew assembleDebug
 
       - uses: actions/upload-artifact@v4
         with:
